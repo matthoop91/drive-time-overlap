@@ -154,7 +154,7 @@
   function fmtAreaShort(m2){var km2=m2/1e6;if(km2<10)return km2.toFixed(1)+" km²";return Math.round(km2)+" km²";}
   function pinIcon(color){return L.divIcon({className:"",iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-24],html:'<svg width="26" height="32" viewBox="0 0 26 32" xmlns="http://www.w3.org/2000/svg"><path d="M13 0C6 0 .5 5.4.5 12.2.5 21 13 32 13 32S25.5 21 25.5 12.2C25.5 5.4 20 0 13 0z" fill="'+color+'" stroke="#fff" stroke-width="2"/><circle cx="13" cy="12" r="4.2" fill="#fff"/></svg>'});}
   function bandStep(max){if(max<=60)return 15;if(max<=180)return 30;return 60;}
-  function bandsForMinutes(max){max=Math.max(5,parseInt(max,10)||30);var out=[],step=bandStep(max),m;if(max<=60){for(m=15;m<max;m+=15)out.push(m);}else{out=[15,30,45,60];for(m=90;m<max;m+=step)out.push(m);}if(out.indexOf(max)<0)out.push(max);return out.filter(function(v,i,a){return v<=max&&a.indexOf(v)===i;});}
+  function bandsForMinutes(max){max=Math.max(5,parseInt(max,10)||30);return [max];}  // single outer band only — keeps ORS fast enough for the serverless time cap
   function bandLabel(max){return bandsForMinutes(max).map(fmtMins).join(" / ");}
 
   function clampMinutes(m){m=parseInt(m,10)||30;return Math.max(5,Math.min(currentMax(),m));}

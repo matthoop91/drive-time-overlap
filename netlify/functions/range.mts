@@ -27,7 +27,7 @@ const TT_MODES = ["car", "truck", "taxi", "bus", "van", "motorcycle", "bicycle",
 
 // Budgets stay under Netlify's 10s function cap. In auto we give ORS a short
 // window and keep room for a TomTom fallback (5.5 + 3.5 = 9s < 10s).
-const SOLO_TIMEOUT_MS = 8500; // explicit single-provider request
+const SOLO_TIMEOUT_MS = 9000; // explicit single-provider request — use most of the 10s cap
 const AUTO_ORS_TIMEOUT_MS = 5500;
 const AUTO_TT_TIMEOUT_MS = 3500;
 
