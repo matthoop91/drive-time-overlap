@@ -10,6 +10,9 @@ import type { Context, Config } from "@netlify/functions";
  *
  * where `feature` is a GeoJSON Feature<Polygon|MultiPolygon> and `points` is the
  * boundary vertex count (so the UI can show how detailed each shape is).
+ *
+ * Add &debug=1 to get diagnostics (which keys are present, upstream status,
+ * timing). Debug never returns the key values themselves.
  */
 
 const ORS_PROFILE: Record<string, string> = {
@@ -18,6 +21,7 @@ const ORS_PROFILE: Record<string, string> = {
   pedestrian: "foot-walking",
 };
 const TT_MODES = ["car", "truck", "taxi", "bus", "van", "motorcycle", "bicycle", "pedestrian"];
+const UPSTREAM_TIMEOUT_MS = 8500; // stay under Netlify's 10s function cap so we return JSON, not a 502.
 
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -34,13 +38,29 @@ function countPoints(geom: any): number {
   return 0;
 }
 
+// fetch with a hard timeout; turns a hang into a clean 504 instead of a platform 502.
+async function timedFetch(url: string, opts: RequestInit, ms: number) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  const start = Date.now();
+  try {
+    const r = await fetch(url, { ...opts, signal: ctrl.signal });
+    return { r, ms: Date.now() - start };
+  } catch (e: any) {
+    if (e && e.name === "AbortError") throw { status: 504, msg: `Upstream timed out after ${ms} ms.` };
+    throw { status: 502, msg: (e && e.message) || "Network error contacting upstream." };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 async function fromTomTom(lat: number, lng: number, mode: string, mins: number[], key: string) {
   const calls = mins.map(async (m) => {
     const sec = m * 60;
     const u =
       `https://api.tomtom.com/routing/1/calculateReachableRange/${lat},${lng}/json` +
       `?key=${encodeURIComponent(key)}&timeBudgetInSec=${sec}&travelMode=${mode}&traffic=true`;
-    const r = await fetch(u);
+    const { r } = await timedFetch(u, {}, UPSTREAM_TIMEOUT_MS);
     const d: any = await r.json().catch(() => null);
     if (!r.ok) {
       const msg = (d && (d?.error?.description || d?.detailedError?.message)) || `TomTom HTTP ${r.status}`;
@@ -68,11 +88,15 @@ async function fromORS(lat: number, lng: number, mode: string, mins: number[], k
   if (!profile) throw { status: 400, msg: "ORS does not support this travel mode." };
   const secs = mins.map((m) => m * 60);
   // smoothing:0 keeps maximum detail; one call returns one (nested) feature per range value.
-  const r = await fetch(`https://api.openrouteservice.org/v2/isochrones/${profile}`, {
-    method: "POST",
-    headers: { Authorization: key, "Content-Type": "application/json", Accept: "application/geo+json" },
-    body: JSON.stringify({ locations: [[lng, lat]], range: secs, range_type: "time", smoothing: 0 }),
-  });
+  const { r } = await timedFetch(
+    `https://api.openrouteservice.org/v2/isochrones/${profile}`,
+    {
+      method: "POST",
+      headers: { Authorization: key, "Content-Type": "application/json", Accept: "application/geo+json" },
+      body: JSON.stringify({ locations: [[lng, lat]], range: secs, range_type: "time", smoothing: 0 }),
+    },
+    UPSTREAM_TIMEOUT_MS,
+  );
   const d: any = await r.json().catch(() => null);
   if (!r.ok) {
     const e = d && d.error;
@@ -99,37 +123,44 @@ export default async (req: Request, _context: Context) => {
   const lng = parseFloat(url.searchParams.get("lng") || "");
   const mode = (url.searchParams.get("mode") || "car").toLowerCase();
   const provider = (url.searchParams.get("provider") || "tomtom").toLowerCase();
+  const debug = url.searchParams.get("debug") === "1";
   const mins = (url.searchParams.get("mins") || "")
     .split(",")
     .map((s) => parseInt(s, 10))
     .filter((n) => Number.isFinite(n) && n > 0 && n <= 1200);
 
+  // booleans only — never the key values themselves.
+  const env = { ors: !!Netlify.env.get("ORS_KEY"), tomtom: !!Netlify.env.get("TOMTOM_KEY") };
+
   if (!isFinite(lat) || !isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    return json({ error: "Missing or invalid lat/lng." }, 400);
+    return json({ error: "Missing or invalid lat/lng.", ...(debug ? { env } : {}) }, 400);
   }
-  if (!mins.length) return json({ error: "Provide ?mins as comma-separated minutes." }, 400);
+  if (!mins.length) return json({ error: "Provide ?mins as comma-separated minutes.", ...(debug ? { env } : {}) }, 400);
   mins.sort((a, b) => a - b);
 
+  const started = Date.now();
   try {
     let features;
     if (provider === "ors") {
-      const key = Netlify.env.get("ORS_KEY");
-      if (!key) return json({ error: "Server is not configured: ORS_KEY is missing." }, 500);
-      features = await fromORS(lat, lng, mode, mins, key);
+      if (!env.ors) return json({ error: "Server is not configured: ORS_KEY is missing.", ...(debug ? { env } : {}) }, 500);
+      features = await fromORS(lat, lng, mode, mins, Netlify.env.get("ORS_KEY")!);
     } else if (provider === "tomtom") {
-      if (!TT_MODES.includes(mode)) return json({ error: "Unsupported travel mode." }, 400);
-      const key = Netlify.env.get("TOMTOM_KEY");
-      if (!key) return json({ error: "Server is not configured: TOMTOM_KEY is missing." }, 500);
-      features = await fromTomTom(lat, lng, mode, mins, key);
+      if (!TT_MODES.includes(mode)) return json({ error: "Unsupported travel mode.", ...(debug ? { env } : {}) }, 400);
+      if (!env.tomtom) return json({ error: "Server is not configured: TOMTOM_KEY is missing.", ...(debug ? { env } : {}) }, 500);
+      features = await fromTomTom(lat, lng, mode, mins, Netlify.env.get("TOMTOM_KEY")!);
     } else {
-      return json({ error: "Unknown provider (use ors or tomtom)." }, 400);
+      return json({ error: "Unknown provider (use ors or tomtom).", ...(debug ? { env } : {}) }, 400);
     }
-    return json({ provider, mode, features }, 200);
+    return json({ provider, mode, features, ...(debug ? { _diag: { env, ms: Date.now() - started } } : {}) }, 200);
   } catch (e: any) {
     const status = (e && e.status) || 502;
     const msg = (e && e.msg) || (e && e.message) || "Upstream request failed.";
-    const code = status === 401 || status === 403 || status === 429 ? status : 502;
-    return json({ error: msg, upstreamStatus: status, provider }, code);
+    const code = status === 401 || status === 403 || status === 429 || status === 504 ? status : 502;
+    console.error(`range proxy failure: provider=${provider} mode=${mode} status=${status} msg=${msg}`);
+    return json(
+      { error: msg, upstreamStatus: status, provider, ...(debug ? { env, ms: Date.now() - started } : {}) },
+      code,
+    );
   }
 };
 
