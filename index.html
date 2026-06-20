@@ -116,22 +116,34 @@
 <div id="topbar"><div class="brand"><h1>Drive Time Overlap</h1><small id="modeHint">tap map to add</small></div><button class="iconbtn" id="searchBtn" title="Search">⌕</button><button class="iconbtn" id="locBtn" title="My location">◎</button><button class="iconbtn" id="setBtn" title="About">ⓘ</button></div>
 <div id="searchwrap"><div id="searchrow"><input id="search" placeholder="Search an address or place…" autocomplete="off" autocorrect="off" spellcheck="false"></div><div id="searchResults"></div></div>
 <div id="toast"></div>
-<div id="sheet"><div id="handle"></div><div class="actionrow"><button class="btn toggle on" id="addToggle">＋ Add</button><button class="btn primary" id="genBtn" disabled>Run all</button><div class="stat"><span class="big" id="statBig">—</span><span class="lbl" id="statLbl">overlap area</span></div></div><div class="body"><div class="seg" id="modeSeg"><button data-p="car" class="on">🚗 Drive</button><button data-p="bicycle">🚲 Cycle</button><button data-p="pedestrian">🚶 Walk</button></div><div class="points" id="pointList"><div class="empty">No locations yet.<br>Tap the map, search, or use ◎ to drop a pin. Run a location to draw its area; add two or more to measure where they overlap.</div></div><div class="actionrow" style="margin-top:14px"><button class="btn ghost" id="clearBtn" title="Clear all">🗑</button><div style="flex:1;font-size:11.5px;color:var(--muted);line-height:1.4">Each pin has its own travel time. Use Run on a pin to draw it, or Run all to refresh the overlap.</div></div></div></div>
-<div id="modal"><div class="card"><h2>How it works</h2><p>Reachable areas are calculated by the <b>TomTom Routing API</b>. The API key lives on the server (a small Netlify function) and never appears in this page — there's nothing to paste or configure.</p><p>Each location runs as its own request at several time bands (e.g. 15 / 30 / 60 / … minutes). Only the <b>outer</b> band is used to measure the overlap; the inner bands are drawn just for context.</p><p>Set an independent travel time per pin, press <b>Run</b> on each (or <b>Run all</b>), then the overlap of every location's outer area is shaded and measured.</p><div class="cardbtns"><button class="btn primary" id="modalClose">Got it</button></div></div></div>
+<div id="sheet"><div id="handle"></div><div class="actionrow"><button class="btn toggle on" id="addToggle">＋ Add</button><button class="btn primary" id="genBtn" disabled>Run all</button><div class="stat"><span class="big" id="statBig">—</span><span class="lbl" id="statLbl">overlap area</span></div></div><div class="body"><div class="seg" id="modeSeg"><button data-p="car" class="on">🚗 Drive</button><button data-p="bicycle">🚲 Cycle</button><button data-p="pedestrian">🚶 Walk</button></div><div class="seg" id="provSeg" style="margin-top:8px"><button data-prov="auto" class="on">Auto</button><button data-prov="ors">ORS · detail</button><button data-prov="tomtom">TomTom · range</button></div><div id="provHint" class="bands" style="margin-top:7px"></div><div class="points" id="pointList"><div class="empty">No locations yet.<br>Tap the map, search, or use ◎ to drop a pin. Run a location to draw its area; add two or more to measure where they overlap.</div></div><div class="actionrow" style="margin-top:14px"><button class="btn ghost" id="clearBtn" title="Clear all">🗑</button><div style="flex:1;font-size:11.5px;color:var(--muted);line-height:1.4">Each pin has its own travel time. Use Run on a pin to draw it, or Run all to refresh the overlap.</div></div></div></div>
+<div id="modal"><div class="card"><h2>How it works</h2><p>Reachable areas come from two providers, both proxied through a small Netlify function so the API keys stay on the server and never appear in this page.</p><p><b>ORS</b> (OpenRouteService) gives detailed shapes but caps driving at 60 min. <b>TomTom</b> gives coarser, traffic-aware shapes with no practical time limit (3 h driving works). <b>Auto</b> uses ORS wherever it's allowed and only falls back to TomTom for drives over an hour. The travel-time limit adjusts automatically to the chosen provider.</p><p>Each location runs at several time bands; only the <b>outer</b> band is used for the overlap, the inner bands are drawn for context. Each pin shows which provider ran it and the outer shape's vertex count (e.g. <i>ORS 312pt</i>) so you can see how detailed it is.</p><div class="cardbtns"><button class="btn primary" id="modalClose">Got it</button></div></div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
 (function(){
   "use strict";
   var COLORS=["#3b82f6","#f43f5e","#10b981","#a855f7","#fb923c","#22d3ee"];
-  var LS_PROFILE="dto_profile", LS_DEFAULT_TIME="dto_default_time";
-  var MAX_TIME_MINUTES=240;            // TomTom reachable range accepts large time budgets; 4h headroom.
-  var PROXY="/api/range";              // Netlify function that proxies TomTom (keeps the key server-side).
-  var MODES={car:1,bicycle:1,pedestrian:1};
+  var LS_PROFILE="dto_profile", LS_DEFAULT_TIME="dto_default_time", LS_PROVIDER="dto_provider";
+  var APP_MAX=300;                     // app-wide ceiling (5h) so sliders stay usable.
+  var PROXY="/api/range";              // Netlify function that proxies ORS / TomTom (keeps keys server-side).
+  var MODES={car:1,bicycle:1,pedestrian:1}, PROVIDERS={auto:1,ors:1,tomtom:1};
+
+  // Per-provider/mode time cap. ORS public API: driving 60 min, cycling 5h, foot 20h;
+  // we clamp to APP_MAX. TomTom has no documented hard cap; we allow up to APP_MAX.
+  // "auto" can fall back to TomTom for long drives, so its cap is APP_MAX too.
+  function providerCap(provider,mode){ if(provider==="ors") return mode==="car"?60:APP_MAX; return APP_MAX; }
 
   var storedProfile=localStorage.getItem(LS_PROFILE)||"car";
   if(!MODES[storedProfile])storedProfile="car";
-  var state={profile:storedProfile,defaultMinutes:Math.min(MAX_TIME_MINUTES,parseInt(localStorage.getItem(LS_DEFAULT_TIME)||"30",10)),addMode:true,points:[],isoLayer:null,overlapLayer:null,badge:null,busy:false,fitCount:-1,nextId:1};
+  var storedProvider=localStorage.getItem(LS_PROVIDER)||"auto";
+  if(!PROVIDERS[storedProvider])storedProvider="auto";
+  var state={profile:storedProfile,provider:storedProvider,defaultMinutes:parseInt(localStorage.getItem(LS_DEFAULT_TIME)||"30",10),addMode:true,points:[],isoLayer:null,overlapLayer:null,badge:null,busy:false,fitCount:-1,nextId:1};
+
+  function currentMax(){ return providerCap(state.provider,state.profile); }
+  // Provider actually used for a given point. In "auto", detailed ORS is used
+  // everywhere it's allowed; only >60-min driving falls back to coarse TomTom.
+  function providerFor(p){ if(state.provider!=="auto") return state.provider; if(state.profile==="car"&&p.minutes>60) return "tomtom"; return "ors"; }
 
   var map=L.map("map",{zoomControl:false,attributionControl:true}).setView([54.0,-2.4],6);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
@@ -148,7 +160,15 @@
   function bandsForMinutes(max){max=Math.max(5,parseInt(max,10)||30);var out=[],step=bandStep(max),m;if(max<=60){for(m=15;m<max;m+=15)out.push(m);}else{out=[15,30,45,60];for(m=90;m<max;m+=step)out.push(m);}if(out.indexOf(max)<0)out.push(max);return out.filter(function(v,i,a){return v<=max&&a.indexOf(v)===i;});}
   function bandLabel(max){return bandsForMinutes(max).map(fmtMins).join(" / ");}
 
-  function clampMinutes(m){m=parseInt(m,10)||30;return Math.max(5,Math.min(MAX_TIME_MINUTES,m));}
+  function clampMinutes(m){m=parseInt(m,10)||30;return Math.max(5,Math.min(currentMax(),m));}
+  function clampAllToMax(){var mx=currentMax();state.points.forEach(function(p){if(p.minutes>mx){p.minutes=mx;markPointDirty(p);}});}
+  function updateProvHint(){
+    var el=document.getElementById("provHint");if(!el)return;var mx=fmtMins(currentMax()),txt;
+    if(state.provider==="ors")txt=state.profile==="car"?"ORS — detailed shapes; driving capped at 60 min.":"ORS — detailed shapes; up to "+mx+".";
+    else if(state.provider==="tomtom")txt="TomTom — coarser shapes, traffic-aware; up to "+mx+" (incl. 3 h driving).";
+    else txt=state.profile==="car"?"Auto — detailed ORS up to 60 min, TomTom (coarser) beyond.":"Auto — detailed ORS up to "+mx+".";
+    el.textContent=txt;
+  }
   function markPointDirty(p){p.isoFeatures=null;p.bands=[];p.outerIso=null;p.isoArea=null;p.dirty=true;}
   function addPoint(latlng){
     var color=COLORS[state.points.length%COLORS.length];
@@ -172,7 +192,7 @@
   function paintPointRange(input){var mn=+input.min,mx=+input.max;input.style.setProperty("--fill",((input.value-mn)/(mx-mn)*100)+"%");}
   function pointStatus(p){
     if(p.running)return ' · running…';
-    if(p.outerIso)return p.dirty?' · needs update':' · '+fmtAreaShort(p.isoArea)+' reach';
+    if(p.outerIso)return p.dirty?' · needs update':' · '+fmtAreaShort(p.isoArea)+' · '+(p.providerUsed==="ors"?"ORS":"TomTom")+' '+(p.detailPts||0)+'pt';
     return p.dirty?' · not run':'';
   }
   function renderList(){
@@ -181,10 +201,12 @@
       el.innerHTML='<div class="empty">No locations yet.<br>Tap the map, search, or use ◎ to drop a pin. Run a location to draw its area; add two or more to measure where they overlap.</div>';
     }else{
       el.innerHTML="";
+      var MAXP=currentMax();
       state.points.forEach(function(p,idx){
+        if(p.minutes>MAXP){p.minutes=MAXP;markPointDirty(p);}
         var ll=p.latlng;
         var row=document.createElement("div");row.className="point";
-        row.innerHTML='<div class="pointTop"><span class="dot" style="background:'+p.color+'"></span><div class="meta"><b>Location '+(idx+1)+'</b><span>'+ll.lat.toFixed(4)+', '+ll.lng.toFixed(4)+pointStatus(p)+'</span></div><button class="runOne" data-id="'+p.id+'"'+(p.running?' disabled':'')+'>'+(p.running?'…':'Run')+'</button><button class="x" data-id="'+p.id+'">×</button></div><div class="pointTime"><div class="row"><label>Travel time for this location</label><span class="val">'+fmtMins(p.minutes)+'</span></div><input type="range" min="5" max="'+MAX_TIME_MINUTES+'" step="5" value="'+p.minutes+'"><span class="bands">Bands: '+bandLabel(p.minutes)+'</span></div>';
+        row.innerHTML='<div class="pointTop"><span class="dot" style="background:'+p.color+'"></span><div class="meta"><b>Location '+(idx+1)+'</b><span>'+ll.lat.toFixed(4)+', '+ll.lng.toFixed(4)+pointStatus(p)+'</span></div><button class="runOne" data-id="'+p.id+'"'+(p.running?' disabled':'')+'>'+(p.running?'…':'Run')+'</button><button class="x" data-id="'+p.id+'">×</button></div><div class="pointTime"><div class="row"><label>Travel time for this location</label><span class="val">'+fmtMins(p.minutes)+'</span></div><input type="range" min="5" max="'+MAXP+'" step="5" value="'+p.minutes+'"><span class="bands">Bands: '+bandLabel(p.minutes)+'</span></div>';
         row.querySelector(".x").addEventListener("click",function(e){e.stopPropagation();removePoint(p.id);});
         row.querySelector(".runOne").addEventListener("click",function(e){e.stopPropagation();runPoint(p);});
         row.querySelector(".pointTop").addEventListener("click",function(e){if(e.target.tagName!=="BUTTON")map.panTo(ll);});
@@ -206,26 +228,20 @@
   // call. Every location is requested separately, so its travel time is never
   // shared with another location.
   function requestPoint(p){
-    var mins=bandsForMinutes(p.minutes);
-    var calls=mins.map(function(m){
-      var u=PROXY+"?lat="+encodeURIComponent(p.latlng.lat)+"&lng="+encodeURIComponent(p.latlng.lng)+"&sec="+(m*60)+"&mode="+encodeURIComponent(state.profile);
-      return fetch(u).then(function(r){return r.json().then(function(j){return{ok:r.ok,status:r.status,data:j,minutes:m};},function(){return{ok:false,status:r.status,data:null,minutes:m};});});
-    });
-    return Promise.all(calls).then(function(results){
-      var feats=[],lastErr=null;
-      results.forEach(function(res){
-        if(res.ok&&res.data&&res.data.feature){
-          var f=res.data.feature;f.__seconds=res.minutes*60;f.__minutes=res.minutes;feats.push(f);
-        }else{
-          var msg=(res.data&&res.data.error)||("HTTP "+res.status);
-          lastErr=typeof msg==="string"?msg:JSON.stringify(msg);
-          if(res.status===401||res.status===403)lastErr="TomTom key rejected on the server.";
-          if(res.status===429)lastErr="TomTom rate limit reached — wait a moment.";
-        }
-      });
-      if(!feats.length)throw new Error(lastErr||"No reachable area returned for this location.");
+    var mins=bandsForMinutes(p.minutes), prov=providerFor(p), name=prov==="ors"?"ORS":"TomTom";
+    var u=PROXY+"?lat="+encodeURIComponent(p.latlng.lat)+"&lng="+encodeURIComponent(p.latlng.lng)+"&mode="+encodeURIComponent(state.profile)+"&provider="+encodeURIComponent(prov)+"&mins="+mins.join(",");
+    return fetch(u).then(function(r){return r.json().then(function(j){return{ok:r.ok,status:r.status,data:j};},function(){return{ok:false,status:r.status,data:null};});})
+    .then(function(res){
+      if(!res.ok||!res.data||!res.data.features||!res.data.features.length){
+        var msg=(res.data&&res.data.error)||("HTTP "+res.status);
+        if(res.status===401||res.status===403)msg=name+" key rejected on the server.";
+        if(res.status===429)msg=name+" rate limit reached — wait a moment.";
+        throw new Error(typeof msg==="string"?msg:JSON.stringify(msg));
+      }
+      var feats=res.data.features.map(function(it){var f=it.feature;f.__seconds=it.seconds;f.__minutes=it.minutes;f.__points=it.points;return f;});
       feats.sort(function(a,b){return a.__seconds-b.__seconds;});
       p.isoFeatures=feats;p.bands=feats;p.outerIso=feats[feats.length-1];
+      p.providerUsed=res.data.provider;p.detailPts=p.outerIso.__points||0;
       try{p.isoArea=turf.area(p.outerIso);}catch(e){p.isoArea=null;}
       p.dirty=false;
       return p;
@@ -233,7 +249,7 @@
   }
   function handleRequestError(err){
     var m=(err&&err.message)||String(err);
-    console.error("TomTom request failed:",err&&err.stack?err.stack:m);
+    console.error("Routing request failed:",err&&err.stack?err.stack:m);
     if(/failed to fetch|load failed|networkerror|network request failed/i.test(m))toast("Can't reach the routing service. Make sure the app is opened from its Netlify URL (the /api proxy only runs there).");
     else toast(m||"Request failed.");
   }
@@ -277,7 +293,9 @@
   var searchT;function doSearch(q){var box=document.getElementById("searchResults");if(!q||q.length<3){box.innerHTML="";return;}fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q="+encodeURIComponent(q),{headers:{"Accept":"application/json"}}).then(function(r){return r.json();}).then(function(list){box.innerHTML="";if(!list.length){box.innerHTML='<div style="color:var(--muted)">No matches</div>';return;}list.forEach(function(item){var d=document.createElement("div");d.textContent=item.display_name;d.addEventListener("click",function(){var ll=L.latLng(parseFloat(item.lat),parseFloat(item.lon));map.setView(ll,12);addPoint(ll);closeSearch();});box.appendChild(d);});}).catch(function(e){console.error("Address search failed:",e);box.innerHTML='<div style="color:var(--muted)">Search unavailable — tap the map instead.</div>';});}
   function closeSearch(){document.getElementById("searchwrap").classList.remove("show");document.getElementById("search").value="";document.getElementById("searchResults").innerHTML="";}
   map.on("click",function(e){if(state.addMode)addPoint(e.latlng);});document.getElementById("addToggle").addEventListener("click",function(){state.addMode=!state.addMode;this.classList.toggle("on",state.addMode);document.getElementById("modeHint").textContent=state.addMode?"tap map to add":"pan & zoom mode";document.getElementById("map").style.cursor=state.addMode?"crosshair":"";});document.getElementById("map").style.cursor="crosshair";document.getElementById("genBtn").addEventListener("click",generate);document.getElementById("clearBtn").addEventListener("click",clearAll);
-  var seg=document.getElementById("modeSeg");Array.prototype.forEach.call(seg.querySelectorAll("button"),function(b){b.addEventListener("click",function(){Array.prototype.forEach.call(seg.querySelectorAll("button"),function(x){x.classList.remove("on");});b.classList.add("on");state.profile=b.dataset.p;localStorage.setItem(LS_PROFILE,state.profile);state.points.forEach(markPointDirty);redrawStoredResults();renderList();});});Array.prototype.forEach.call(seg.querySelectorAll("button"),function(x){x.classList.toggle("on",x.dataset.p===state.profile);});
+  var seg=document.getElementById("modeSeg");Array.prototype.forEach.call(seg.querySelectorAll("button"),function(b){b.addEventListener("click",function(){Array.prototype.forEach.call(seg.querySelectorAll("button"),function(x){x.classList.remove("on");});b.classList.add("on");state.profile=b.dataset.p;localStorage.setItem(LS_PROFILE,state.profile);state.points.forEach(markPointDirty);clampAllToMax();updateProvHint();redrawStoredResults();renderList();});});Array.prototype.forEach.call(seg.querySelectorAll("button"),function(x){x.classList.toggle("on",x.dataset.p===state.profile);});
+  var prov=document.getElementById("provSeg");Array.prototype.forEach.call(prov.querySelectorAll("button"),function(b){b.addEventListener("click",function(){Array.prototype.forEach.call(prov.querySelectorAll("button"),function(x){x.classList.remove("on");});b.classList.add("on");state.provider=b.dataset.prov;localStorage.setItem(LS_PROVIDER,state.provider);state.points.forEach(markPointDirty);clampAllToMax();updateProvHint();redrawStoredResults();renderList();});});Array.prototype.forEach.call(prov.querySelectorAll("button"),function(x){x.classList.toggle("on",x.dataset.prov===state.provider);});
+  updateProvHint();
   var sheet=document.getElementById("sheet");document.getElementById("handle").addEventListener("click",function(){sheet.classList.toggle("collapsed");});document.getElementById("searchBtn").addEventListener("click",function(){var w=document.getElementById("searchwrap");w.classList.toggle("show");if(w.classList.contains("show"))setTimeout(function(){document.getElementById("search").focus();},50);});document.getElementById("search").addEventListener("input",function(){clearTimeout(searchT);var q=this.value;searchT=setTimeout(function(){doSearch(q);},450);});document.getElementById("locBtn").addEventListener("click",function(){if(!navigator.geolocation){toast("Location not available.");return;}toast("Finding your location…");navigator.geolocation.getCurrentPosition(function(pos){var ll=L.latLng(pos.coords.latitude,pos.coords.longitude);map.setView(ll,13);addPoint(ll);},function(){toast("Couldn't get location — check permissions.");},{enableHighAccuracy:true,timeout:8000});});
   var modal=document.getElementById("modal");function openModal(){modal.classList.add("show");}document.getElementById("setBtn").addEventListener("click",openModal);document.getElementById("modalClose").addEventListener("click",function(){modal.classList.remove("show");});modal.addEventListener("click",function(e){if(e.target===modal)modal.classList.remove("show");});
   renderList();
