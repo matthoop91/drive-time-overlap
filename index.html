@@ -141,9 +141,6 @@
   var state={profile:storedProfile,provider:storedProvider,defaultMinutes:parseInt(localStorage.getItem(LS_DEFAULT_TIME)||"30",10),addMode:true,points:[],isoLayer:null,overlapLayer:null,badge:null,busy:false,fitCount:-1,nextId:1};
 
   function currentMax(){ return providerCap(state.provider,state.profile); }
-  // Provider actually used for a given point. In "auto", detailed ORS is used
-  // everywhere it's allowed; only >60-min driving falls back to coarse TomTom.
-  function providerFor(p){ if(state.provider!=="auto") return state.provider; if(state.profile==="car"&&p.minutes>60) return "tomtom"; return "ors"; }
 
   var map=L.map("map",{zoomControl:false,attributionControl:true}).setView([54.0,-2.4],6);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
@@ -228,14 +225,15 @@
   // call. Every location is requested separately, so its travel time is never
   // shared with another location.
   function requestPoint(p){
-    var mins=bandsForMinutes(p.minutes), prov=providerFor(p), name=prov==="ors"?"ORS":"TomTom";
+    var mins=bandsForMinutes(p.minutes), prov=state.provider;
     var u=PROXY+"?lat="+encodeURIComponent(p.latlng.lat)+"&lng="+encodeURIComponent(p.latlng.lng)+"&mode="+encodeURIComponent(state.profile)+"&provider="+encodeURIComponent(prov)+"&mins="+mins.join(",");
     return fetch(u).then(function(r){return r.json().then(function(j){return{ok:r.ok,status:r.status,data:j};},function(){return{ok:false,status:r.status,data:null};});})
     .then(function(res){
       if(!res.ok||!res.data||!res.data.features||!res.data.features.length){
         var msg=(res.data&&res.data.error)||("HTTP "+res.status);
-        if(res.status===401||res.status===403)msg=name+" key rejected on the server.";
-        if(res.status===429)msg=name+" rate limit reached — wait a moment.";
+        if(res.status===401||res.status===403)msg="Routing key rejected on the server.";
+        if(res.status===429)msg="Rate limit reached — wait a moment.";
+        if(res.status===504)msg=(res.data&&res.data.error)||"Routing timed out — try TomTom mode or a shorter time.";
         throw new Error(typeof msg==="string"?msg:JSON.stringify(msg));
       }
       var feats=res.data.features.map(function(it){var f=it.feature;f.__seconds=it.seconds;f.__minutes=it.minutes;f.__points=it.points;return f;});
