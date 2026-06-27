@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "drive-time-overlap",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-27",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+}

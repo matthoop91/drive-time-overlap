@@ -24,12 +24,18 @@ travel time, and measure where the reachable areas overlap.
 
 ## Architecture
 
-This is a static `index.html` plus one Cloudflare Pages Function:
+This is a Cloudflare **Worker + Static Assets** project:
 
 ```
-index.html                # the whole front-end
-functions/api/range.js    # proxy: /api/range -> Mapbox / ORS / TomTom (hides keys)
+public/index.html         # the whole front-end (only this folder is published)
+src/worker.js             # entry: routes /api/range, else serves public/ assets
+src/range.js              # proxy logic: Mapbox / ORS / TomTom (hides keys)
+wrangler.jsonc            # name, main, compatibility_date, assets binding
 ```
+
+The Worker serves `/api/range` itself and falls through to the `public/` assets
+binding for everything else. Only `public/` is published, so `.git/`, `src/`,
+etc. are never exposed.
 
 API keys are **never** in the page source. They live only in environment
 variables on Cloudflare (`MAPBOX_TOKEN`, `ORS_KEY`, `TOMTOM_KEY`), and the
@@ -38,30 +44,30 @@ directly. The proxy is a provider registry — adding a new provider (e.g. ArcGI
 means adding one entry plus, if it should be auto-selectable, listing it in
 `AUTO_ORDER`.
 
-Why Cloudflare Pages: its Workers runtime does not count time spent awaiting
-`fetch()` against its limits, so slow upstreams (e.g. ORS's 60-min driving
-isochrone) complete — unlike Netlify's hard 10 s function cap.
+Why Cloudflare: its Workers runtime does not count time spent awaiting `fetch()`
+against its limits, so slow upstreams (e.g. ORS's 60-min driving isochrone)
+complete — unlike Netlify's hard 10 s function cap.
 
 ## Deploy
 
-1. Create a Cloudflare Pages project connected to this repo (free, no card).
-   - **Build command:** none. **Build output directory:** `/` (repo root).
-2. In Pages → Settings → Environment variables, add (Production + Preview):
-   - `MAPBOX_TOKEN` = your Mapbox access token
-   - `ORS_KEY` = your OpenRouteService API key
-   - `TOMTOM_KEY` = your TomTom API key
-   - (Any provider whose key is missing is simply skipped.)
-3. Open the site's `*.pages.dev` URL. (The `/api/range` proxy only runs when
-   served by Pages, so opening `index.html` as a local file won't fetch areas.)
+Git-connected Cloudflare Worker (free, no card). The build runs
+`npx wrangler deploy`, which reads `wrangler.jsonc`.
+
+1. **Workers & Pages → Create → Workers → Connect to Git** → pick this repo.
+   No build settings to change — `wrangler.jsonc` defines everything.
+2. In the Worker's **Settings → Variables and Secrets**, add (encrypt as
+   Secret): `MAPBOX_TOKEN`, `ORS_KEY`, `TOMTOM_KEY`. Any provider whose key is
+   missing is simply skipped. Re-deploy after adding so they take effect.
+3. Open the site's `*.workers.dev` URL.
 
 ## Local development
 
 ```
-npm i -g wrangler              # once
-wrangler pages dev .           # serves index.html and functions/ locally
+npm i -g wrangler        # once
+wrangler dev             # serves public/ + the /api/range route locally
 ```
 
-Provide the keys to `wrangler pages dev` via a `.dev.vars` file in the repo root:
+Provide the keys to `wrangler dev` via a `.dev.vars` file in the repo root:
 
 ```
 MAPBOX_TOKEN=...

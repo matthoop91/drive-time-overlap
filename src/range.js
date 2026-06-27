@@ -1,5 +1,6 @@
 /**
- * Reachable-range proxy — Cloudflare Pages Function (route: /api/range).
+ * Reachable-range proxy logic — exported as handleRange(request, env) and wired
+ * to the route /api/range by src/worker.js.
  *
  * Picks an upstream per request via ?provider=auto|mapbox|ors|tomtom. Keys live
  * only in env vars (MAPBOX_TOKEN / ORS_KEY / TOMTOM_KEY); the browser never sees
@@ -12,9 +13,9 @@
  * (auto may resolve to any usable provider). `feature` is a GeoJSON
  * Feature<Polygon|MultiPolygon>; `points` is the boundary vertex count.
  *
- * Why Cloudflare Pages and not Netlify: Netlify hard-kills functions at 10s,
- * which ORS's 60-min driving isochrone can exceed. The Workers runtime does not
- * count time spent awaiting fetch() against its limits, so slow upstreams finish.
+ * Why Cloudflare and not Netlify: Netlify hard-kills functions at 10s, which
+ * ORS's 60-min driving isochrone can exceed. The Workers runtime does not count
+ * time spent awaiting fetch() against its limits, so slow upstreams finish.
  *
  * Add &debug=1 for diagnostics (key presence as booleans only, timing).
  *
@@ -174,14 +175,14 @@ async function fromTomTom(lat, lng, travelMode, mins, key, timeoutMs) {
 }
 
 // usable = key present, mode supported, and every requested band within the cap.
-function usable(name, env, mode, mins) {
+function usable(name, present, mode, mins) {
   const p = PROVIDERS[name];
-  if (!p || !env[name] || !p.modes[mode]) return false;
+  if (!p || !present[name] || !p.modes[mode]) return false;
   const cap = p.cap(mode);
   return mins.every((m) => m <= cap);
 }
 
-export const onRequestGet = async ({ request, env }) => {
+export async function handleRange(request, env) {
   const url = new URL(request.url);
   const lat = parseFloat(url.searchParams.get("lat") || "");
   const lng = parseFloat(url.searchParams.get("lng") || "");
@@ -257,4 +258,4 @@ export const onRequestGet = async ({ request, env }) => {
     console.error(`range proxy failure: provider=${provider} mode=${mode} status=${status} msg=${msg}`);
     return json({ error: msg, upstreamStatus: status, provider, ...dbg({ env: present, ms: Date.now() - started }) }, code);
   }
-};
+}
