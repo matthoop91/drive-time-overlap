@@ -6,7 +6,8 @@ travel time, and measure where the reachable areas overlap.
 - **Map / UI:** Leaflet + OpenStreetMap tiles, Nominatim search, bottom-sheet UI.
 - **Geometry:** Turf.js for area and intersection.
 - **Routing:** pluggable providers — Mapbox Isochrone, OpenRouteService (ORS),
-  and TomTom *Calculate Reachable Range* — selectable per request.
+  HERE Isoline, ArcGIS Service Areas, and TomTom *Calculate Reachable Range* —
+  selectable per request.
 
 ## How it works
 
@@ -18,9 +19,14 @@ travel time, and measure where the reachable areas overlap.
 - Providers:
   - **Mapbox** — detailed shapes, fast; capped at 60 min (Mapbox limit).
   - **ORS** — detailed shapes; driving capped at 60 min, other modes up to 5 h.
+  - **HERE** — detailed shapes, long range (up to 5 h).
+  - **ArcGIS** — detailed drive-time service areas (driving only), long range.
   - **TomTom** — coarser, traffic-aware shapes; up to 5 h (3 h driving works).
-  - **Auto** — prefers fast detailed Mapbox where allowed, falls back to TomTom
-    for longer drives. The travel-time slider cap adjusts to the chosen provider.
+  - **Auto** — prefers fast detailed Mapbox ≤60 min, then HERE/ORS/ArcGIS
+    (detailed) and finally TomTom for long drives. The slider cap adjusts.
+- **Compare** (⚖ on a location): runs *every* configured provider for that point
+  and time, overlays each boundary on the map in its own colour, and ranks them
+  by reachable area so you can see how the providers' extents differ.
 
 ## Architecture
 
@@ -48,16 +54,25 @@ Why Cloudflare: its Workers runtime does not count time spent awaiting `fetch()`
 against its limits, so slow upstreams (e.g. ORS's 60-min driving isochrone)
 complete — unlike Netlify's hard 10 s function cap.
 
+The five keys read at runtime are `MAPBOX_TOKEN`, `ORS_KEY`, `HERE_KEY`,
+`ARCGIS_KEY`, `TOMTOM_KEY`. **Any provider whose key is absent is simply
+skipped**, so you can run with only the ones you have.
+
 ## Deploy
 
-Git-connected Cloudflare Worker (free, no card). The build runs
-`npx wrangler deploy`, which reads `wrangler.jsonc`.
+Git-connected Cloudflare Worker (free, no card). The build runs `wrangler deploy`,
+which reads `wrangler.jsonc`.
 
 1. **Workers & Pages → Create → Workers → Connect to Git** → pick this repo.
    No build settings to change — `wrangler.jsonc` defines everything.
-2. In the Worker's **Settings → Variables and Secrets**, add (encrypt as
-   Secret): `MAPBOX_TOKEN`, `ORS_KEY`, `TOMTOM_KEY`. Any provider whose key is
-   missing is simply skipped. Re-deploy after adding so they take effect.
+2. Make the keys available to the running Worker. Either:
+   - add them under **Settings → Variables and Secrets** (type Secret); or
+   - set them as **Build variables** and pass them through in the deploy command:
+     ```
+     npx wrangler deploy --var MAPBOX_TOKEN:"$MAPBOX_TOKEN" --var ORS_KEY:"$ORS_KEY" \
+       --var HERE_KEY:"$HERE_KEY" --var ARCGIS_KEY:"$ARCGIS_KEY" --var TOMTOM_KEY:"$TOMTOM_KEY"
+     ```
+   Re-deploy after changing keys so they take effect.
 3. Open the site's `*.workers.dev` URL.
 
 ## Local development
@@ -72,5 +87,7 @@ Provide the keys to `wrangler dev` via a `.dev.vars` file in the repo root:
 ```
 MAPBOX_TOKEN=...
 ORS_KEY=...
+HERE_KEY=...
+ARCGIS_KEY=...
 TOMTOM_KEY=...
 ```

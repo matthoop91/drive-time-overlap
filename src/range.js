@@ -43,6 +43,18 @@ const PROVIDERS = {
     modes: { car: "driving-car", bicycle: "cycling-regular", pedestrian: "foot-walking" },
     run: fromORS,
   },
+  here: {
+    keyEnv: "HERE_KEY",
+    cap: () => 300, // HERE Isoline handles long time ranges; cap to the app ceiling
+    modes: { car: "car", bicycle: "bicycle", pedestrian: "pedestrian" },
+    run: fromHere,
+  },
+  arcgis: {
+    keyEnv: "ARCGIS_KEY",
+    cap: () => 300, // ArcGIS Service Areas; driving only in this integration
+    modes: { car: "driving" },
+    run: fromArcgis,
+  },
   tomtom: {
     keyEnv: "TOMTOM_KEY",
     cap: () => 300,
@@ -53,10 +65,11 @@ const PROVIDERS = {
     run: fromTomTom,
   },
 };
-// auto preference: fast+detailed first, long-range last.
-const AUTO_ORDER = ["mapbox", "ors", "tomtom"];
+// auto preference: fast detail first; detailed long-range (HERE/ORS/ArcGIS)
+// before coarse TomTom, which is the last resort.
+const AUTO_ORDER = ["mapbox", "here", "ors", "arcgis", "tomtom"];
 
-const PRETTY = { mapbox: "Mapbox", ors: "ORS", tomtom: "TomTom" };
+const PRETTY = { mapbox: "Mapbox", ors: "ORS", tomtom: "TomTom", here: "HERE", arcgis: "ArcGIS" };
 
 function json(body, status) {
   return new Response(JSON.stringify(body), {
@@ -174,6 +187,109 @@ async function fromTomTom(lat, lng, travelMode, mins, key, timeoutMs) {
   return Promise.all(calls);
 }
 
+// Decode HERE's "flexible polyline" (used by Isoline v8 polygons) into a GeoJSON
+// ring of [lng,lat]. Table built from the flexpolyline alphabet; float math (not
+// 32-bit bitwise) so high precisions can't overflow.
+// https://github.com/heremaps/flexible-polyline
+const FP_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+const FP_DECODE = (() => {
+  const t = {};
+  for (let k = 0; k < FP_ALPHABET.length; k++) t[FP_ALPHABET.charCodeAt(k)] = k;
+  return t;
+})();
+function decodeFlexPolyline(encoded) {
+  let i = 0;
+  const next = () => {
+    let result = 0, shift = 0, b;
+    do {
+      const v = FP_DECODE[encoded.charCodeAt(i++)];
+      if (v === undefined) throw { status: 502, msg: "Bad HERE polyline." };
+      b = v;
+      result += (b & 0x1f) * Math.pow(2, shift);
+      shift += 5;
+    } while (b & 0x20);
+    return result;
+  };
+  const toSigned = (v) => (v % 2 ? -(Math.floor(v / 2)) - 1 : Math.floor(v / 2));
+  next(); // format version (1)
+  const header = next();
+  const precision = header & 15;
+  const thirdDim = (header >> 4) & 7;
+  const factor = Math.pow(10, precision);
+  let lat = 0, lng = 0;
+  const ring = [];
+  while (i < encoded.length) {
+    lat += toSigned(next());
+    lng += toSigned(next());
+    if (thirdDim) next(); // discard elevation/level
+    ring.push([lng / factor, lat / factor]);
+  }
+  return ring;
+}
+
+async function fromHere(lat, lng, mode, mins, key, timeoutMs) {
+  // One call returns every requested range as its own isoline (full area).
+  const values = mins.map((m) => m * 60).join(",");
+  const u =
+    `https://isoline.router.hereapi.com/v8/isolines?apiKey=${encodeURIComponent(key)}` +
+    `&transportMode=${mode}&origin=${lat},${lng}&range[type]=time&range[values]=${values}&optimizeFor=balanced`;
+  const r = await timedFetch(u, {}, timeoutMs);
+  const d = await r.json().catch(() => null);
+  if (!r.ok) {
+    const msg = (d && (d.title || d.error_description || d.cause)) || `HERE HTTP ${r.status}`;
+    throw { status: r.status, msg };
+  }
+  const isos = (d && d.isolines) || [];
+  return mins.map((m) => {
+    const sec = m * 60;
+    const iso = isos.find((x) => x.range && Math.round(x.range.value) === sec);
+    if (!iso || !iso.polygons || !iso.polygons.length)
+      throw { status: 502, msg: `HERE returned no area for ${m} min.` };
+    const polys = iso.polygons.map((pg) => [decodeFlexPolyline(pg.outer)]);
+    const geometry =
+      polys.length === 1 ? { type: "Polygon", coordinates: polys[0] } : { type: "MultiPolygon", coordinates: polys };
+    return {
+      minutes: m,
+      seconds: sec,
+      points: countPoints(geometry),
+      feature: { type: "Feature", properties: { minutes: m, seconds: sec, provider: "here" }, geometry },
+    };
+  });
+}
+
+async function fromArcgis(lat, lng, _profile, mins, key, timeoutMs) {
+  // One call per break so each polygon is the full reachable disk for that time.
+  const calls = mins.map(async (m) => {
+    const sec = m * 60;
+    const q = new URLSearchParams({
+      f: "json",
+      token: key,
+      facilities: `${lng},${lat}`,
+      defaultBreaks: String(m), // ServiceArea_World default mode = Driving Time (minutes)
+      travelDirection: "esriNATravelDirectionFromFacility",
+      outputPolygons: "esriNAOutputPolygonDetailed",
+      trimOuterPolygon: "true",
+      outSR: "4326",
+      returnFacilities: "false",
+    });
+    const u = `https://route-api.arcgis.com/arcgis/rest/services/World/ServiceAreas/NAServer/ServiceArea_World/solveServiceArea?${q}`;
+    const r = await timedFetch(u, {}, timeoutMs);
+    const d = await r.json().catch(() => null);
+    if (!r.ok) throw { status: r.status, msg: `ArcGIS HTTP ${r.status}` };
+    if (d && d.error) throw { status: d.error.code || 502, msg: d.error.message || "ArcGIS error" };
+    const f = d && d.saPolygons && d.saPolygons.features && d.saPolygons.features[0];
+    if (!f || !f.geometry || !f.geometry.rings) throw { status: 502, msg: `ArcGIS returned no area for ${m} min.` };
+    const geometry = { type: "Polygon", coordinates: f.geometry.rings };
+    return {
+      minutes: m,
+      seconds: sec,
+      points: countPoints(geometry),
+      feature: { type: "Feature", properties: { minutes: m, seconds: sec, provider: "arcgis" }, geometry },
+    };
+  });
+  return Promise.all(calls);
+}
+
 // usable = key present, mode supported, and every requested band within the cap.
 function usable(name, present, mode, mins) {
   const p = PROVIDERS[name];
@@ -208,6 +324,27 @@ export async function handleRange(request, env) {
 
   const started = Date.now();
   let fellBack = false;
+
+  // Comparison mode: run every provider for this point and return each one's
+  // result (or why it was skipped) so the client can compare boundary extents.
+  if (provider === "all") {
+    const results = {};
+    await Promise.all(
+      Object.keys(PROVIDERS).map(async (name) => {
+        const p = PROVIDERS[name];
+        if (!present[name]) { results[name] = { skipped: "no key configured" }; return; }
+        if (!p.modes[mode]) { results[name] = { skipped: "travel mode not supported" }; return; }
+        const cap = p.cap(mode);
+        if (mins.some((m) => m > cap)) { results[name] = { skipped: `max ${cap} min for this mode` }; return; }
+        try {
+          results[name] = { features: await p.run(lat, lng, p.modes[mode], mins, keyOf(name), AUTO_TIMEOUT_MS) };
+        } catch (e) {
+          results[name] = { error: (e && e.msg) || (e && e.message) || "request failed", status: e && e.status };
+        }
+      }),
+    );
+    return json({ mode, compare: true, results, ...dbg({ _diag: { env: present, ms: Date.now() - started } }) }, 200);
+  }
 
   try {
     let used, features;

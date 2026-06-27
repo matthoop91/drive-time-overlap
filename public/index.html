@@ -104,6 +104,7 @@
   .provrow{display:flex;align-items:center;gap:10px}.provrow label{font-size:12px;color:var(--muted);font-weight:650;flex:0 0 auto}.provrow select{flex:1;height:40px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-size:14px;font-weight:600;border-radius:11px;padding:0 12px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%2393a2b3' stroke-width='2'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
   input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--accent) var(--fill,40%),var(--surface) var(--fill,40%));outline:none}input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:25px;height:25px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.4)}
   .points{margin-top:14px;display:flex;flex-direction:column;gap:8px;max-height:34vh;overflow-y:auto}.point{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.pointTop{display:flex;align-items:center;gap:11px}.dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.08)}.point .meta{flex:1;min-width:0}.point .meta b{font-size:14px;font-weight:650}.point .meta span{display:block;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}.point .x{width:34px;height:34px;flex:0 0 auto;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:18px}.runOne{height:34px;flex:0 0 auto;border-radius:9px;border:1px solid rgba(245,158,11,.5);background:rgba(245,158,11,.14);color:var(--accent);font-size:12px;font-weight:800;padding:0 10px}.runOne[disabled]{opacity:.5}.pointTime{margin-top:10px}.pointTime .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}.pointTime label{font-size:12px;color:var(--muted);font-weight:650}.pointTime .val{font-size:13px;font-weight:750;color:var(--text)}.bands{display:block;margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.35}.empty{color:var(--muted);font-size:13px;text-align:center;padding:16px 8px;line-height:1.5}
+  #cmpModal{position:absolute;inset:0;z-index:2000;background:rgba(8,12,18,.72);display:none;align-items:flex-end;backdrop-filter:blur(3px)}#cmpModal.show{display:flex}.cmpRow{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line)}.cmpRow:first-child{border-top:none}.cmpRow .sw{width:14px;height:14px;border-radius:4px;flex:0 0 auto}.cmpMain{flex:1;min-width:0}.cmpName{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;align-items:baseline}.cmpName b{font-weight:700}.cmpName span{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}.cmpBarWrap{height:6px;background:var(--surface-2);border-radius:3px;margin-top:6px;overflow:hidden}.cmpBar{height:100%;border-radius:3px;min-width:2px}.cmpRow.muted b{color:var(--muted);font-weight:600;font-size:13px}.cmpRow.muted .cmpErr{color:var(--muted);font-size:11px;margin-left:auto;text-align:right}.runOne.cmp{font-size:16px;padding:0 9px;font-weight:400}
   .overlap-path{animation:ants 1s linear infinite}@keyframes ants{to{stroke-dashoffset:-16}}.area-badge{background:var(--overlap);color:#3a2e00;font-weight:800;font-size:12px;padding:5px 9px;border-radius:9px;white-space:nowrap;letter-spacing:-.01em;box-shadow:0 3px 10px rgba(0,0,0,.45);border:1px solid rgba(0,0,0,.15);transform:translate(-50%,-50%)}.pin-label{background:var(--surface);color:var(--text);font-size:11px;font-weight:600;padding:2px 7px;border-radius:7px;border:1px solid var(--line);white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.4);transform:translate(-50%,4px)}
   #toast{position:absolute;left:50%;top:calc(64px + var(--safe-t));transform:translateX(-50%);z-index:1200;background:#27160f;color:#ffd9a8;border:1px solid #5a3a1d;padding:11px 16px;border-radius:12px;font-size:13.5px;max-width:88vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s}#toast.show{opacity:1}
   #modal{position:absolute;inset:0;z-index:2000;background:rgba(8,12,18,.72);display:none;align-items:flex-end;backdrop-filter:blur(3px)}#modal.show{display:flex}.card{width:100%;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--line);padding:20px 20px calc(22px + var(--safe-b));box-shadow:0 -12px 40px rgba(0,0,0,.6)}.card h2{margin:0 0 4px;font-size:19px;letter-spacing:-.02em}.card p{margin:8px 0;color:var(--muted);font-size:13.5px;line-height:1.55}.card a{color:var(--accent);font-weight:600}.card .cardbtns{display:flex;gap:10px;margin-top:16px}.card .cardbtns .btn{flex:1}.leaflet-container{background:#0b1118}.leaflet-control-attribution{font-size:9px;background:rgba(15,23,32,.7)!important;color:#7e8a98!important}.leaflet-control-attribution a{color:#9bb0c4!important}
@@ -117,8 +118,9 @@
 <div id="topbar"><div class="brand"><h1>Drive Time Overlap</h1><small id="modeHint">tap map to add</small></div><button class="iconbtn" id="searchBtn" title="Search">⌕</button><button class="iconbtn" id="locBtn" title="My location">◎</button><button class="iconbtn" id="setBtn" title="About">ⓘ</button></div>
 <div id="searchwrap"><div id="searchrow"><input id="search" placeholder="Search an address or place…" autocomplete="off" autocorrect="off" spellcheck="false"></div><div id="searchResults"></div></div>
 <div id="toast"></div>
-<div id="sheet"><div id="handle"></div><div class="actionrow"><button class="btn toggle on" id="addToggle">＋ Add</button><button class="btn primary" id="genBtn" disabled>Run all</button><div class="stat"><span class="big" id="statBig">—</span><span class="lbl" id="statLbl">overlap area</span></div></div><div class="body"><div class="seg" id="modeSeg"><button data-p="car" class="on">🚗 Drive</button><button data-p="bicycle">🚲 Cycle</button><button data-p="pedestrian">🚶 Walk</button></div><div class="provrow" style="margin-top:8px"><label for="provSel">Provider</label><select id="provSel"><option value="auto">Auto (smart)</option><option value="mapbox">Mapbox · fast detail</option><option value="ors">ORS · detail</option><option value="tomtom">TomTom · long range</option></select></div><div id="provHint" class="bands" style="margin-top:7px"></div><div class="points" id="pointList"><div class="empty">No locations yet.<br>Tap the map, search, or use ◎ to drop a pin. Run a location to draw its area; add two or more to measure where they overlap.</div></div><div class="actionrow" style="margin-top:14px"><button class="btn ghost" id="clearBtn" title="Clear all">🗑</button><div style="flex:1;font-size:11.5px;color:var(--muted);line-height:1.4">Each pin has its own travel time. Use Run on a pin to draw it, or Run all to refresh the overlap.</div></div></div></div>
-<div id="modal"><div class="card"><h2>How it works</h2><p>Reachable areas come from several providers, all proxied through a small Cloudflare Pages function so the API keys stay on the server and never appear in this page.</p><p><b>Mapbox</b> gives detailed shapes fast, capped at 60 min. <b>ORS</b> (OpenRouteService) also gives detailed shapes but caps driving at 60 min. <b>TomTom</b> gives coarser, traffic-aware shapes with no practical time limit (3 h driving works). <b>Auto</b> uses fast detailed Mapbox wherever it's allowed and falls back to TomTom for longer drives. The travel-time limit adjusts automatically to the chosen provider.</p><p>Each location runs at several time bands; only the <b>outer</b> band is used for the overlap, the inner bands are drawn for context. Each pin shows which provider ran it and the outer shape's vertex count (e.g. <i>ORS 312pt</i>) so you can see how detailed it is.</p><div class="cardbtns"><button class="btn primary" id="modalClose">Got it</button></div></div></div>
+<div id="sheet"><div id="handle"></div><div class="actionrow"><button class="btn toggle on" id="addToggle">＋ Add</button><button class="btn primary" id="genBtn" disabled>Run all</button><div class="stat"><span class="big" id="statBig">—</span><span class="lbl" id="statLbl">overlap area</span></div></div><div class="body"><div class="seg" id="modeSeg"><button data-p="car" class="on">🚗 Drive</button><button data-p="bicycle">🚲 Cycle</button><button data-p="pedestrian">🚶 Walk</button></div><div class="provrow" style="margin-top:8px"><label for="provSel">Provider</label><select id="provSel"><option value="auto">Auto (smart)</option><option value="mapbox">Mapbox · fast detail</option><option value="ors">ORS · detail</option><option value="here">HERE · detail, long range</option><option value="arcgis">ArcGIS · drive, long range</option><option value="tomtom">TomTom · long range</option></select></div><div id="provHint" class="bands" style="margin-top:7px"></div><div class="points" id="pointList"><div class="empty">No locations yet.<br>Tap the map, search, or use ◎ to drop a pin. Run a location to draw its area; add two or more to measure where they overlap.</div></div><div class="actionrow" style="margin-top:14px"><button class="btn ghost" id="clearBtn" title="Clear all">🗑</button><div style="flex:1;font-size:11.5px;color:var(--muted);line-height:1.4">Each pin has its own travel time. Use Run on a pin to draw it, or Run all to refresh the overlap.</div></div></div></div>
+<div id="cmpModal"><div class="card"><h2>Provider comparison</h2><div id="cmpSub" class="bands" style="margin-bottom:4px"></div><div id="cmpRows"></div><p style="font-size:11.5px;margin:10px 0 0">Each provider's reachable boundary for this location is drawn on the map in its colour. Bars show area relative to the largest.</p><div class="cardbtns"><button class="btn primary" id="cmpDone">Done</button></div></div></div>
+<div id="modal"><div class="card"><h2>How it works</h2><p>Reachable areas come from several providers, all proxied through a small Cloudflare Worker so the API keys stay on the server and never appear in this page.</p><p><b>Mapbox</b> gives detailed shapes fast, capped at 60 min. <b>ORS</b> also gives detailed shapes but caps driving at 60 min. <b>HERE</b> gives detailed shapes with no practical time limit. <b>ArcGIS</b> gives detailed drive-time areas (driving only), long range. <b>TomTom</b> gives coarser, traffic-aware shapes, long range. <b>Auto</b> uses fast detailed Mapbox up to 60 min, then HERE/ArcGIS (detailed) and finally TomTom for long drives. The travel-time limit adjusts to the chosen provider.</p><p>Tap <b>⚖</b> on any location to run <b>every</b> provider at that point and compare how far each one's boundary reaches — areas are overlaid on the map in each provider's colour, with a ranked list by size.</p><p>Each location runs at several time bands; only the <b>outer</b> band is used for the overlap, the inner bands are drawn for context. Each pin shows which provider ran it and the outer shape's vertex count (e.g. <i>ORS 312pt</i>) so you can see how detailed it is.</p><div class="cardbtns"><button class="btn primary" id="modalClose">Got it</button></div></div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
@@ -128,19 +130,23 @@
   var LS_PROFILE="dto_profile", LS_DEFAULT_TIME="dto_default_time", LS_PROVIDER="dto_provider";
   var APP_MAX=300;                     // app-wide ceiling (5h) so sliders stay usable.
   var PROXY="/api/range";              // Cloudflare Pages Function that proxies Mapbox / ORS / TomTom (keeps keys server-side).
-  var MODES={car:1,bicycle:1,pedestrian:1}, PROVIDERS={auto:1,mapbox:1,ors:1,tomtom:1};
+  var MODES={car:1,bicycle:1,pedestrian:1}, PROVIDERS={auto:1,mapbox:1,ors:1,here:1,arcgis:1,tomtom:1};
+  // Pretty names + per-provider colours (used by pin labels and the comparison view).
+  var PRETTY={auto:"Auto",mapbox:"Mapbox",ors:"ORS",here:"HERE",arcgis:"ArcGIS",tomtom:"TomTom"};
+  var PROV_COLORS={mapbox:"#3b82f6",ors:"#10b981",here:"#a855f7",arcgis:"#fb923c",tomtom:"#f43f5e"};
+  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
   // Per-provider/mode time cap, mirroring the proxy. Mapbox isochrone caps at
   // 60 min (all modes). ORS public API: driving 60 min, cycling/foot up to
-  // APP_MAX. TomTom has no documented hard cap; allow up to APP_MAX. "auto" can
-  // fall back to TomTom for long drives, so its cap is APP_MAX too.
+  // APP_MAX. HERE/ArcGIS/TomTom handle long ranges up to APP_MAX. "auto" can
+  // fall back for long drives, so its cap is APP_MAX too.
   function providerCap(provider,mode){ if(provider==="mapbox")return 60; if(provider==="ors")return mode==="car"?60:APP_MAX; return APP_MAX; }
 
   var storedProfile=localStorage.getItem(LS_PROFILE)||"car";
   if(!MODES[storedProfile])storedProfile="car";
   var storedProvider=localStorage.getItem(LS_PROVIDER)||"auto";
   if(!PROVIDERS[storedProvider])storedProvider="auto";
-  var state={profile:storedProfile,provider:storedProvider,defaultMinutes:parseInt(localStorage.getItem(LS_DEFAULT_TIME)||"30",10),addMode:true,points:[],isoLayer:null,overlapLayer:null,badge:null,busy:false,fitCount:-1,nextId:1};
+  var state={profile:storedProfile,provider:storedProvider,defaultMinutes:parseInt(localStorage.getItem(LS_DEFAULT_TIME)||"30",10),addMode:true,points:[],isoLayer:null,compareLayer:null,overlapLayer:null,badge:null,busy:false,fitCount:-1,nextId:1};
 
   function currentMax(){ return providerCap(state.provider,state.profile); }
 
@@ -149,6 +155,7 @@
   L.control.zoom({position:"topright"}).addTo(map);
   setTimeout(function(){var zc=document.querySelector(".leaflet-control-zoom"); if(zc) zc.style.marginTop="100px";},0);
   state.isoLayer=L.layerGroup().addTo(map);
+  state.compareLayer=L.layerGroup().addTo(map);
 
   var toastT;
   function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},3200);}
@@ -173,8 +180,10 @@
     var el=document.getElementById("provHint");if(!el)return;var mx=fmtMins(currentMax()),txt;
     if(state.provider==="mapbox")txt="Mapbox — detailed & fast shapes; up to 60 min.";
     else if(state.provider==="ors")txt=state.profile==="car"?"ORS — detailed shapes; driving capped at 60 min.":"ORS — detailed shapes; up to "+mx+".";
+    else if(state.provider==="here")txt="HERE — detailed shapes, long range; up to "+mx+".";
+    else if(state.provider==="arcgis")txt=state.profile==="car"?"ArcGIS — detailed drive-time areas; up to "+mx+".":"ArcGIS — driving only; switch mode to Drive.";
     else if(state.provider==="tomtom")txt="TomTom — coarser shapes, traffic-aware; up to "+mx+" (incl. 3 h driving).";
-    else txt=state.profile==="car"?"Auto — fast detailed Mapbox up to 60 min, TomTom (coarser) beyond.":"Auto — fast detailed shapes up to "+mx+".";
+    else txt=state.profile==="car"?"Auto — fast detailed Mapbox up to 60 min, HERE/ArcGIS (detailed) beyond.":"Auto — fast detailed shapes up to "+mx+".";
     el.textContent=txt;
   }
   function markPointDirty(p){p.isoFeatures=null;p.bands=[];p.outerIso=null;p.isoArea=null;p.dirty=true;}
@@ -200,7 +209,7 @@
   function paintPointRange(input){var mn=+input.min,mx=+input.max;input.style.setProperty("--fill",((input.value-mn)/(mx-mn)*100)+"%");}
   function pointStatus(p){
     if(p.running)return ' · running…';
-    if(p.outerIso)return p.dirty?' · needs update':' · '+fmtAreaShort(p.isoArea)+' · '+(p.providerUsed==="ors"?"ORS":"TomTom")+' '+(p.detailPts||0)+'pt';
+    if(p.outerIso)return p.dirty?' · needs update':' · '+fmtAreaShort(p.isoArea)+' · '+(PRETTY[p.providerUsed]||p.providerUsed||"")+' '+(p.detailPts||0)+'pt';
     return p.dirty?' · not run':'';
   }
   function renderList(){
@@ -214,9 +223,10 @@
         if(p.minutes>MAXP){p.minutes=MAXP;markPointDirty(p);}
         var ll=p.latlng;
         var row=document.createElement("div");row.className="point";
-        row.innerHTML='<div class="pointTop"><span class="dot" style="background:'+p.color+'"></span><div class="meta"><b>Location '+(idx+1)+'</b><span>'+ll.lat.toFixed(4)+', '+ll.lng.toFixed(4)+pointStatus(p)+'</span></div><button class="runOne" data-id="'+p.id+'"'+(p.running?' disabled':'')+'>'+(p.running?'…':'Run')+'</button><button class="x" data-id="'+p.id+'">×</button></div><div class="pointTime"><div class="row"><label>Travel time for this location</label><span class="val">'+fmtMins(p.minutes)+'</span></div><input type="range" min="5" max="'+MAXP+'" step="5" value="'+p.minutes+'"><span class="bands">Bands: '+bandLabel(p.minutes)+'</span></div>';
+        row.innerHTML='<div class="pointTop"><span class="dot" style="background:'+p.color+'"></span><div class="meta"><b>Location '+(idx+1)+'</b><span>'+ll.lat.toFixed(4)+', '+ll.lng.toFixed(4)+pointStatus(p)+'</span></div><button class="runOne cmp" data-id="'+p.id+'" title="Compare providers"'+(p.running?' disabled':'')+'>⚖</button><button class="runOne" data-id="'+p.id+'"'+(p.running?' disabled':'')+'>'+(p.running?'…':'Run')+'</button><button class="x" data-id="'+p.id+'">×</button></div><div class="pointTime"><div class="row"><label>Travel time for this location</label><span class="val">'+fmtMins(p.minutes)+'</span></div><input type="range" min="5" max="'+MAXP+'" step="5" value="'+p.minutes+'"><span class="bands">Bands: '+bandLabel(p.minutes)+'</span></div>';
         row.querySelector(".x").addEventListener("click",function(e){e.stopPropagation();removePoint(p.id);});
-        row.querySelector(".runOne").addEventListener("click",function(e){e.stopPropagation();runPoint(p);});
+        row.querySelector(".cmp").addEventListener("click",function(e){e.stopPropagation();comparePoint(p);});
+        row.querySelector(".runOne:not(.cmp)").addEventListener("click",function(e){e.stopPropagation();runPoint(p);});
         row.querySelector(".pointTop").addEventListener("click",function(e){if(e.target.tagName!=="BUTTON")map.panTo(ll);});
         var input=row.querySelector('input[type="range"]'), val=row.querySelector(".val"), bands=row.querySelector(".bands");
         paintPointRange(input);
@@ -229,7 +239,7 @@
     gb.disabled=!state.points.length||state.busy;
     gb.textContent=state.points.length>1?"Run all / overlap":"Run location";
   }
-  function clearResults(){state.isoLayer.clearLayers();if(state.overlapLayer){map.removeLayer(state.overlapLayer);state.overlapLayer=null;}if(state.badge){map.removeLayer(state.badge);state.badge=null;}state.points.forEach(function(p){markPointDirty(p);});state.fitCount=-1;document.getElementById("statBig").textContent="—";document.getElementById("statLbl").textContent="overlap area";}
+  function clearResults(){if(state.compareLayer)state.compareLayer.clearLayers();state.isoLayer.clearLayers();if(state.overlapLayer){map.removeLayer(state.overlapLayer);state.overlapLayer=null;}if(state.badge){map.removeLayer(state.badge);state.badge=null;}state.points.forEach(function(p){markPointDirty(p);});state.fitCount=-1;document.getElementById("statBig").textContent="—";document.getElementById("statLbl").textContent="overlap area";}
 
   // ---- TomTom (via Netlify proxy) ----
   // TomTom returns ONE polygon per request, so each band is its own independent
@@ -272,7 +282,51 @@
     state.busy=true;state.points.forEach(function(p){p.running=true;});var gb=document.getElementById("genBtn");gb.disabled=true;gb.textContent="Running…";renderList();
     Promise.all(state.points.map(requestPoint)).then(function(){redrawStoredResults();}).catch(handleRequestError).finally(function(){state.busy=false;state.points.forEach(function(p){p.running=false;});renderList();});
   }
+  // ---- Provider comparison (one location, every provider) ----
+  function comparePoint(p){
+    if(state.busy)return;
+    state.busy=true;p.running=true;renderList();toast("Comparing providers at Location "+(state.points.indexOf(p)+1)+"…");
+    var u=PROXY+"?lat="+encodeURIComponent(p.latlng.lat)+"&lng="+encodeURIComponent(p.latlng.lng)+"&mode="+encodeURIComponent(state.profile)+"&provider=all&mins="+p.minutes;
+    fetch(u).then(function(r){return r.json().then(function(j){return{ok:r.ok,status:r.status,data:j};},function(){return{ok:false,status:r.status,data:null};});})
+    .then(function(res){
+      if(!res.ok||!res.data||!res.data.results)throw new Error((res.data&&res.data.error)||("HTTP "+res.status));
+      renderCompare(res.data.results,p);
+    }).catch(handleRequestError).finally(function(){state.busy=false;p.running=false;renderList();});
+  }
+  function renderCompare(results,p){
+    state.compareLayer.clearLayers();
+    var order=["mapbox","ors","here","arcgis","tomtom"], entries=[], maxArea=0;
+    order.forEach(function(name){
+      var rr=results[name];if(!rr)return;
+      if(rr.features&&rr.features.length){
+        var it=rr.features[rr.features.length-1], f=it.feature, area=0;
+        try{area=turf.area(f);}catch(e){}
+        entries.push({name:name,area:area,pts:it.points||0});
+        if(area>maxArea)maxArea=area;
+        L.geoJSON(f,{style:{color:PROV_COLORS[name]||"#888",weight:2.5,opacity:.95,fill:true,fillColor:PROV_COLORS[name]||"#888",fillOpacity:.04}}).addTo(state.compareLayer);
+      }else{
+        entries.push({name:name,error:rr.error||rr.skipped||"unavailable"});
+      }
+    });
+    var ok=entries.filter(function(e){return!e.error;});
+    ok.sort(function(a,b){return b.area-a.area;});
+    var rows=ok.map(function(e){
+      var pct=maxArea?Math.round(e.area/maxArea*100):0;
+      var rel=maxArea&&e.area?Math.round(e.area/maxArea*100):0;
+      return '<div class="cmpRow"><span class="sw" style="background:'+(PROV_COLORS[e.name]||"#555")+'"></span><div class="cmpMain"><div class="cmpName"><b>'+(PRETTY[e.name]||e.name)+'</b><span>'+fmtAreaShort(e.area)+' · '+e.pts+' pt · '+rel+'%</span></div><div class="cmpBarWrap"><div class="cmpBar" style="width:'+pct+'%;background:'+(PROV_COLORS[e.name]||"#555")+'"></div></div></div></div>';
+    }).join("");
+    var bad=entries.filter(function(e){return e.error;}).map(function(e){
+      return '<div class="cmpRow muted"><span class="sw" style="background:'+(PROV_COLORS[e.name]||"#555")+';opacity:.4"></span><b>'+(PRETTY[e.name]||e.name)+'</b><span class="cmpErr">'+esc(String(e.error))+'</span></div>';
+    }).join("");
+    document.getElementById("cmpRows").innerHTML=(rows||'<div class="empty">No provider returned an area here.</div>')+bad;
+    document.getElementById("cmpSub").textContent="Location "+(state.points.indexOf(p)+1)+" · "+fmtMins(p.minutes)+" · "+(state.profile==="car"?"Drive":state.profile==="bicycle"?"Cycle":"Walk")+(ok.length>1?" · "+ok.length+" providers":"");
+    try{if(state.compareLayer.getLayers().length)map.fitBounds(state.compareLayer.getBounds().pad(0.08),{maxZoom:14});}catch(e){}
+    document.getElementById("cmpModal").classList.add("show");
+  }
+  function closeCompare(){document.getElementById("cmpModal").classList.remove("show");if(state.compareLayer)state.compareLayer.clearLayers();}
+
   function redrawStoredResults(){
+    if(state.compareLayer)state.compareLayer.clearLayers();
     state.isoLayer.clearLayers();
     if(state.overlapLayer){map.removeLayer(state.overlapLayer);state.overlapLayer=null;}
     if(state.badge){map.removeLayer(state.badge);state.badge=null;}
@@ -307,6 +361,7 @@
   updateProvHint();
   var sheet=document.getElementById("sheet");document.getElementById("handle").addEventListener("click",function(){sheet.classList.toggle("collapsed");});document.getElementById("searchBtn").addEventListener("click",function(){var w=document.getElementById("searchwrap");w.classList.toggle("show");if(w.classList.contains("show"))setTimeout(function(){document.getElementById("search").focus();},50);});document.getElementById("search").addEventListener("input",function(){clearTimeout(searchT);var q=this.value;searchT=setTimeout(function(){doSearch(q);},450);});document.getElementById("locBtn").addEventListener("click",function(){if(!navigator.geolocation){toast("Location not available.");return;}toast("Finding your location…");navigator.geolocation.getCurrentPosition(function(pos){var ll=L.latLng(pos.coords.latitude,pos.coords.longitude);map.setView(ll,13);addPoint(ll);},function(){toast("Couldn't get location — check permissions.");},{enableHighAccuracy:true,timeout:8000});});
   var modal=document.getElementById("modal");function openModal(){modal.classList.add("show");}document.getElementById("setBtn").addEventListener("click",openModal);document.getElementById("modalClose").addEventListener("click",function(){modal.classList.remove("show");});modal.addEventListener("click",function(e){if(e.target===modal)modal.classList.remove("show");});
+  var cmpModal=document.getElementById("cmpModal");document.getElementById("cmpDone").addEventListener("click",closeCompare);cmpModal.addEventListener("click",function(e){if(e.target===cmpModal)closeCompare();});
   renderList();
 })();
 </script>
